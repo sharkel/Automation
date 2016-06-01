@@ -27,9 +27,9 @@ _maxVal = 0  # 현재 최대값
 _threshold = 0 # - for what? 
 _threshold_max = 0 # - for what?
 _threshold_ave = 0 # - for what?
-Deprecated_testing_value = 200 # - for what? this variable has nver ben used.
+
 _stack_cnt = 0 # - for what?
-Deprecated_cam_cnt = 0 # - for what? this variable has never been used.
+
 
 
 # 검출영역 선택완료 여부
@@ -40,11 +40,9 @@ _isImageAreaSelected = True # It stores a status of success of the image area wh
 # 0 : 기본 상태 / 1 : 임계값 검출중 / 2 : 임계값 검출 / 3 : 영역추출 불량검출 준비완료
 _ImageProcessedStatus = 0
 
-# 로그 출력을 위한 파일 오픈
-
-# 비프음을 위한 설정
-Deprecated_Freq = 2500 # Set Frequency To 2500 Hertz
-Deprecated_Dur = 1000 # Set Duration To 1000 ms == 1 second
+# Deprecated_testing_value was used to test. and I forget this var when I delete test code.
+# Deprecated_cam_cnt was cnt for cam. But camManager doesn't build. so it's dummy
+# Deprecated_Freq, Deprecated_Dur was used to Beep in Window
 
 ser = serial.Serial('/dev/ttyACM0', 115200) # initiailzation of the Arduino
 
@@ -81,10 +79,6 @@ class mCam():
 
 ################################# 함수 정의 #################################################
 ################################# Global Functions #################################################
-# 추후 검출범위를 유동적으로 한다면 해당 함수의 내용을 아래 control_phase함수로 이식할 필요가 있다.
-# 영역지정 함수
-# 현재 위치를 고정한 상태이기에 사용되지 않는다.
-
 # function  :
 def valueAmplifier(valueToAmplify, amplificationFeature):
   if amplificationFeature == "Addition":
@@ -92,6 +86,9 @@ def valueAmplifier(valueToAmplify, amplificationFeature):
   else:
     return int(valueToAmplify)*int(valueToAmplify)
 
+# 추후 검출범위를 유동적으로 한다면 해당 함수의 내용을 아래 control_phase함수로 이식할 필요가 있다.
+# 영역지정 함수
+# 현재 위치를 고정한 상태이기에 사용되지 않는다.
 def setArea(event, x, y, flags, param):
   global start, end, _isImageAreaSelected
   global refPt # - for what? this value has never been used in this function. This value has never been delcared from outside.
@@ -108,9 +105,9 @@ def setArea(event, x, y, flags, param):
 def control_phase(event, x, y, flags, param):
   global _ImageProcessedStatus
   if event == cv2.EVENT_LBUTTONDOWN:
-    _ImageProcessedStatus = 1
+    _ImageProcessedStatus = 1 # phase - Thresholds calc
   elif event == cv2.EVENT_RBUTTONDOWN:
-    _ImageProcessedStatus = 2
+    _ImageProcessedStatus = 2 # phase - Thresholds ready
 
 # 시작부터 종류부분까지의 이미지를 잘라낸다
 def cropArea(start, end):
@@ -133,7 +130,6 @@ def cumulative(frame_width, start, end, cropped_img):
 # 배열길이와 누적값을 토대로 필요한 값 계산
 def mux(frame_width, cumulative_img, amplificationFeature):
   global _threshold, _threshold_ave, _threshold_max, _maxVal, _pre_max, _pre_ave, _pre_cnt, _ImageProcessedStatus
-  global Deprecated_testing_value #this value has never been called, what is this for?
   _maxVal = 0
   minVal = 9999
   _threshold = 0
@@ -257,7 +253,7 @@ while cam1.s: # if cam1.s is in action, value is not null.
         
       # 스택의 적재상태에 따라 아두이노로 신호를 보낸다
       # 1 : LED ON / 2 : LED OFF
-      # flag 체크 후 한번씩만 보내도록 하는 if문이 소실. 복구예정
+      # flag 체크 후 한번씩만 보내도록 하는 if문이 소실. 복구예.....읍읍
       if _stack_cnt >= 10:
         ser.write("1")
       else:
