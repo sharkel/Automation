@@ -133,34 +133,45 @@ def mux(frame_width, cumulative_img, amplificationFeature):
   _maxVal = 0
   minVal = 9999
   _threshold = 0
-  sumVal = 0
+  total = 0 # sumVal -> total
 
-  # 전 범위에서 최대 / 최소값 검출
+  # step 1
+  # 전체 픽셀 중 최대 / 최소값 검출
   for i in range(0, int(frame_width)):
     if _maxVal < cumulative_img[i]:
       _maxVal = int(cumulative_img[i])
-    if cumulative_img[i] != 0:
-      if minVal > cumulative_img[i]:
+    if cumulative_img[i] == 0:
+        break
+    elif minVal > cumulative_img[i]:
         minVal = int(cumulative_img[i])
         
-  # 이 부분의 처리를 왜 했는지 정확한 기억이 나지 않음
+  # step 2
+  # sorry i don't know too
   # HERE, THE NAME OF VARIABLES HAVE TO BE RENAMED SPECIFICALLY. IT IS NOT OBVIOUS WHAT EACH ACTION DOES.
   _maxVal = _maxVal - minVal # Focused on differenciation. 
   # _maxVal = _maxVal * _maxVal # To amplifiy the difference in all mean. - But, I don't still understand why this is done in here. 
   _maxVal = valueAmplifier(_maxVal,amplificationFeature)
+  
+  # step 3
+  # 픽셀값 범위 조정
   for i in range(0, int(frame_width)):
+    # 3-1
     # 최소값을 빼는 것으로 수치를 하향조정
     cumulative_img[i] = int(cumulative_img[i]) - minVal #Focused on only differenciation in image value;
 
+    # 3-2
     # 0 미만의 값은 0으로 전환
     if cumulative_img[i] < 0:
       cumulative_img[i] = 0
-
+      
+    # 3-3  
     # 제곱을 통해 편차를 늘이고, 이 합과 평균을 검출. 이 평균값을 임계값으로 한다.
     cumulative_img[i] = int(cumulative_img[i]) * int(cumulative_img[i])
-    sumVal = sumVal + int(cumulative_img[i]) # - Why here all adding the value of pixel.
-  _average = sumVal/int(frame_width) # - Why here divides the sumVal using image width? SERIOUSELY, I DON'T GET THIS.
-  _threshold = _average # - for why? Why does the _average pass its value to threshold?
+    total = total + int(cumulative_img[i]) # - Why here all adding the value of pixel.
+  
+  # it's not global var   
+  average = total/int(frame_width) # - Why here divides the sumVal using image width? SERIOUSELY, I DON'T GET THIS.
+  _threshold = average # - for why? Why does the _average pass its value to threshold?
 
   # 해당 륀에서의 최대값과 평규값의 합을 저장
   if _ImageProcessedStatus == 1:
