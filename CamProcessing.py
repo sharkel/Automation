@@ -15,13 +15,17 @@ start = 265 # 잘라낼 이미지의 시작라인 - start of the vertical
 end = 290   # 잘라낼 이미지의 마지막 라인 - end of the vertical 
 threshold = 500 # Maximum value of in gree sign. If the image value exceeds this, the incident is recored in stack
 amplificationType = "Multiplication" # Define an operator to amplify image value. "Addition", "Mutiplication" are avaliable. Default is "Multiplication"
+
 # 기준치 산정을 위한 변수 - for what?
 # THese variables are doesn't need to be defined as global. It's been used for only 'mux'function.
 # What's the meaning of the pre_ on every variable prefix?
-_pre_cnt = 0 # it is only used for _threshold, what does 'cnt' stand for ? May be the abbreviation of 'count'.
+# A) Yes. It was only called at mux. But mux was called all times.
+# But these need static property to save value.
+# If these are local var then they will be initialize every call. 
+_pre_cnt = 0 # when calc the threshold, user can adjust time. then loop count is different everytime.
 _pre_max = 0 # it is only used for summation of _maxVal. 
 _pre_ave = 0 #
-
+_pre_result = 0
 
 _maxVal = 0  # 현재 최대값 
 _threshold = 0 # - for what? 
@@ -40,12 +44,11 @@ _isImageAreaSelected = True # It stores a status of success of the image area wh
 # 0 : 기본 상태 / 1 : 임계값 검출중 / 2 : 임계값 검출 / 3 : 영역추출 불량검출 준비완료
 _ImageProcessedStatus = 0
 
+ser = serial.Serial('/dev/ttyACM0', 115200) # initiailzation of the Arduino
+
 # Deprecated_testing_value was used to test. and I forget this var when I delete test code.
 # Deprecated_cam_cnt was cnt for cam. But camManager doesn't build. so it's dummy
 # Deprecated_Freq, Deprecated_Dur was used to Beep in Window
-
-ser = serial.Serial('/dev/ttyACM0', 115200) # initiailzation of the Arduino
-
 
 ################################# 클래스 정의 #################################################
 
@@ -67,7 +70,6 @@ class mCam():
     cam = None
     s = None
     img = None
-    _isImageAreaSelected = True # - what for? in this code?
     def __init__(self, index):
         self.cam = cv2.VideoCapture(index)
         print("%d - Capture start") %index
@@ -106,6 +108,7 @@ def control_phase(event, x, y, flags, param):
   global _ImageProcessedStatus
   if event == cv2.EVENT_LBUTTONDOWN:
     _ImageProcessedStatus = 1 # phase - Thresholds calc
+    _pre_result = 0
   elif event == cv2.EVENT_RBUTTONDOWN:
     _ImageProcessedStatus = 2 # phase - Thresholds ready
 
@@ -146,18 +149,16 @@ def mux(frame_width, cumulative_img, amplificationFeature):
         minVal = int(cumulative_img[i])
         
   # step 2
-  # sorry i don't know too
   # HERE, THE NAME OF VARIABLES HAVE TO BE RENAMED SPECIFICALLY. IT IS NOT OBVIOUS WHAT EACH ACTION DOES.
   _maxVal = _maxVal - minVal # Focused on differenciation. 
-  # _maxVal = _maxVal * _maxVal # To amplifiy the difference in all mean. - But, I don't still understand why this is done in here. 
-  _maxVal = valueAmplifier(_maxVal,amplificationFeature)
+  _maxVal = valueAmplifier(_maxVal,amplificationFeature) # sorry I forget this reason
   
   # step 3
   # 픽셀값 범위 조정
   for i in range(0, int(frame_width)):
     # 3-1
     # 최소값을 빼는 것으로 수치를 하향조정
-    cumulative_img[i] = int(cumulative_img[i]) - minVal #Focused on only differenciation in image value;
+    cumulative_img[i] = int(cumulative_img[i]) - minVal # Focused on only differenciation in image value;
 
     # 3-2
     # 0 미만의 값은 0으로 전환
@@ -169,15 +170,16 @@ def mux(frame_width, cumulative_img, amplificationFeature):
     cumulative_img[i] = int(cumulative_img[i]) * int(cumulative_img[i])
     total = total + int(cumulative_img[i]) # - Why here all adding the value of pixel.
   
-  # it's not global var   
+  # average is not global var. so I delete _
   average = total/int(frame_width) # - Why here divides the sumVal using image width? SERIOUSELY, I DON'T GET THIS.
   _threshold = average # - for why? Why does the _average pass its value to threshold?
-
-  # 해당 륀에서의 최대값과 평규값의 합을 저장
+ 
+  # step 4
+  # 해당 라인에서의 최대값과 평규값의 합을 저장
   if _ImageProcessedStatus == 1:
     #- for why? 아래 3 변수를 따로 저장하게된 이유?
     _pre_max = _pre_max + _maxVal
-    _pre_ave = _pre_ave + _average
+    _pre_ave = _pre_ave + average
     _pre_cnt = _pre_cnt + 1
   # 루프 종료를 위해 최종적으로 평균을 계산 후, 전역변수를 0으로 초기화
   elif _ImageProcessedStatus == 2:
@@ -186,15 +188,12 @@ def mux(frame_width, cumulative_img, amplificationFeature):
     # _threshold_ave = _average/_pre_cnt
     _threshold_max = _pre_max / _pre_cnt
     _threshold_ave = _pre_ave / _pre_cnt
+    
     # 재측정을 위한 초기화
-    # - for why?  Why these three variables are defined globaly? These are has been used in this function only. 
-    # 아래 3개변수는 이 함수내에서만 사용됨. Global 로 사용하려는 목적은?
     _pre_max = 0
     _pre_ave = 0
     _pre_cnt = 0
-
-    Deprecated_testing_value = int(_threshold_ave * 1) # - what for?
-    _ImageProcessedStatus = 3
+    _ImageProcessedStatus = 3 # ready to check
   return cumulative_img
 
 # 스택 적재
@@ -252,7 +251,8 @@ while cam1.s: # if cam1.s is in action, value is not null.
     # 범위 지정 && 기준치 측정 완료 후 진행
     # HERE TO FILTER THE VALUE EXCEEDS THE MAXMIUM.
     if _ImageProcessedStatus == 3:
-      pre_result = int((_threshold_max - _threshold_ave)*0.001) # - for why? What is this fomula?
+      if _pre_result == 0:
+          _pre_result = int((_threshold_max - _threshold_ave)*0.001) # - for why? What is this fomula?
       new_result = int((_maxVal - _threshold)*0.001) # - for why? Here also why multiplies by 0.001?
       tmp = new_result - pre_result
 
