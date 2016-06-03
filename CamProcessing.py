@@ -151,7 +151,7 @@ def mux(frame_width, cumulative_img, amplificationFeature):
   # step 2
   # HERE, THE NAME OF VARIABLES HAVE TO BE RENAMED SPECIFICALLY. IT IS NOT OBVIOUS WHAT EACH ACTION DOES.
   _maxVal = _maxVal - minVal # Focused on differenciation. 
-  _maxVal = valueAmplifier(_maxVal,amplificationFeature) # sorry I forget this reason
+  _maxVal = valueAmplifier(_maxVal,amplificationFeature) # sorry I forget this reason. Try skip this line.
   
   # step 3
   # 픽셀값 범위 조정
