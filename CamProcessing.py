@@ -267,7 +267,7 @@ key = cv2.waitKey(10) # 키 입력대기
 
 #  if key != -1:
 #      print key
-   if key == 27: # ESC : 종료
+  if key == 27: # ESC : 종료
     cv2.destroyWindow(winName)
     break
   elif key == 32: # maybe P : 10초간 중지
